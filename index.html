@@ -269,6 +269,66 @@
   }
   .class-row .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 
+  /* ---------- Tabs ---------- */
+  .tabs {
+    max-width: 760px; margin: 0 auto;
+    padding: 8px clamp(16px, 4vw, 40px) 0;
+  }
+  .tab-list {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border: 1px solid var(--border);
+  }
+  .tab {
+    background: var(--bg);
+    border: none;
+    padding: 13px 10px;
+    font-size: 13.5px; font-weight: 700; color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  .tab + .tab { border-left: 1px solid var(--border); }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] {
+    color: var(--text); font-weight: 800;
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    border-bottom-color: var(--accent);
+  }
+
+  /* ---------- Class descriptions ---------- */
+  .about {
+    max-width: 760px; margin: 0 auto;
+    padding: 24px clamp(16px, 4vw, 40px) 0;
+  }
+  .about-intro {
+    font-size: 14px; line-height: 1.6; color: var(--text-muted);
+    margin: 0 0 18px;
+  }
+  .about-list { display: grid; gap: 12px; }
+  .about-card {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 18px 18px 16px;
+  }
+  .about-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .about-emoji { font-size: 20px; line-height: 1; flex: none; }
+  .about-head h2 { font-size: 16.5px; font-weight: 800; margin: 0; }
+  .about-tagline {
+    font-size: 13.5px; font-weight: 700; color: var(--accent-ink);
+    margin: 0 0 8px;
+  }
+  .about-text {
+    font-size: 14px; line-height: 1.6; color: var(--text);
+    margin: 0;
+  }
+  .about-times {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .about-times .time-pill { font-weight: 600; }
+  .about-times .time-pill b { font-weight: 800; }
+
   /* ---------- Footer ---------- */
   footer {
     padding: 24px clamp(16px, 4vw, 40px) 100px;
@@ -313,6 +373,14 @@
   </div>
 </section>
 
+<nav class="tabs">
+  <div class="tab-list" role="tablist" aria-label="Seções">
+    <button class="tab" type="button" role="tab" id="tabGrade" aria-controls="panelGrade" aria-selected="true">Grade de horários</button>
+    <button class="tab" type="button" role="tab" id="tabAulas" aria-controls="panelAulas" aria-selected="false" tabindex="-1">Entenda cada aula</button>
+  </div>
+</nav>
+
+<div id="panelGrade" role="tabpanel" aria-labelledby="tabGrade">
 <section class="picker">
   <p class="picker-title">Selecione a <span class="n">aula</span> e veja a grade</p>
   <div class="mod-grid" id="modGrid" role="group" aria-label="Modalidades de aula"></div>
@@ -332,6 +400,12 @@
 </div>
 
 <div class="full-schedule" id="fullSchedule"></div>
+</div>
+
+<section class="about" id="panelAulas" role="tabpanel" aria-labelledby="tabAulas" hidden>
+  <p class="about-intro">Conheça as aulas coletivas da GTS e descubra qual combina mais com você.</p>
+  <div class="about-list" id="aboutList"></div>
+</section>
 
 <footer>
   <span>GTS Academia</span>
@@ -346,19 +420,17 @@
 <script>
 (function () {
   var MODALITIES = {
-    move:   { label: "GTS Move (Mobilidade)", hue: 205 },
-    pilates:{ label: "GTS Pilates",           hue: 330 },
-    run:    { label: "GTS Run 30",            hue: 18  },
-    dance:  { label: "GTS Dance",             hue: 276 },
-    beach:  { label: "GTS Beach Body",        hue: 168 },
-    yoga:   { label: "GTS Yoga",              hue: 142 },
-    yogaflow:{ label: "GTS Yoga - Flow",      hue: 160 },
-    jump:   { label: "GTS Jump 30",           hue: 355 },
-    force:  { label: "GTS Force 30",          hue: 38  },
-    flash:  { label: "GTS Flashback",         hue: 250 },
-    step:   { label: "GTS Step Power 30",     hue: 190 },
-    gap:    { label: "GTS GAP (Glúteo, Abdômen, Pernas)", hue: 300 },
-    hiit:   { label: "GTS HIIT",              hue: 0   }
+    beach:       { label: "GTS Beach Body",  hue: 168 },
+    gap:         { label: "GTS GAP",         hue: 300 },
+    hiit:        { label: "GTS HIIT",        hue: 18  },
+    force:       { label: "GTS Force",       hue: 38  },
+    pilates:     { label: "GTS Pilates",     hue: 330 },
+    yogaflow:    { label: "GTS Yoga Flow",   hue: 142 },
+    mobilidade:  { label: "GTS Mobilidade",  hue: 205 },
+    alongamento: { label: "GTS Alongamento", hue: 95  },
+    jump:        { label: "GTS Jump",        hue: 355 },
+    flash:       { label: "GTS Flashback",   hue: 250 },
+    step:        { label: "GTS Step Power",  hue: 190 }
   };
 
   var DAYS = [
@@ -378,31 +450,35 @@
 
   var SCHEDULE = {
     segunda: {
-      manha: [["06:00","07:00","move"],["07:00","08:00","run"],["07:00","08:00","gap"],["08:00","09:00","beach"],["09:00","10:00","pilates"]],
+      manha: [["06:00","07:00","mobilidade"],["07:00","08:00","gap"],["08:00","09:00","beach"],["09:00","10:00","pilates"]],
       tarde: [["15:00","16:00","jump"],["16:00","17:00","beach"],["17:00","18:00","force"]],
-      noite: [["18:00","19:00","run"],["19:00","20:00","beach"]]
+      noite: [["19:00","20:00","beach"]]
     },
     terca: {
-      manha: [["06:00","07:00","pilates"],["07:00","08:00","dance"],["07:00","08:00","hiit"],["08:00","09:00","yoga"]],
-      tarde: [["17:00","18:00","flash"]],
-      noite: [["18:00","19:00","yoga"],["19:00","20:00","step"]]
+      manha: [["06:00","07:00","pilates"],["07:00","08:00","hiit"],["08:00","09:00","yogaflow"]],
+      tarde: [["15:00","16:00","beach"],["17:00","18:00","flash"]],
+      noite: [["18:00","19:00","yogaflow"],["19:00","20:00","step"]]
     },
     quarta: {
-      manha: [["06:00","07:00","move"],["07:00","08:00","run"],["07:00","08:00","gap"],["08:00","09:00","beach"],["09:00","10:00","pilates"]],
+      manha: [["06:00","07:00","alongamento"],["07:00","08:00","gap"],["08:00","09:00","beach"],["09:00","10:00","pilates"]],
       tarde: [["15:00","16:00","jump"],["16:00","17:00","beach"],["17:00","18:00","force"]],
-      noite: [["18:00","19:00","run"],["19:00","20:00","beach"]]
+      noite: [["19:00","20:00","beach"]]
     },
     quinta: {
-      manha: [["06:00","07:00","pilates"],["07:00","08:00","dance"],["07:00","08:00","hiit"],["08:00","09:00","yoga"]],
-      tarde: [["17:00","18:00","flash"]],
-      noite: [["18:00","19:00","yoga"],["19:00","20:00","step"]]
+      manha: [["06:00","07:00","pilates"],["07:00","08:00","hiit"],["08:00","09:00","yogaflow"]],
+      tarde: [["15:00","16:00","beach"],["17:00","18:00","flash"]],
+      noite: [["18:00","19:00","yogaflow"],["19:00","20:00","step"]]
     },
     sexta: {
-      manha: [["06:00","07:00","yogaflow"],["07:00","08:00","pilates"],["07:00","08:00","gap"],["08:00","09:00","beach"]],
+      manha: [["07:00","08:00","gap"],["08:00","09:00","beach"],["09:00","10:00","pilates"]],
       tarde: [["16:00","17:00","beach"],["17:00","18:00","force"]],
       noite: [["19:00","20:00","beach"]]
     },
-    sabado: { manha: [["09:00","10:00","beach"]], tarde: [], noite: [] }
+    sabado: {
+      manha: [["09:00","10:00","beach"]],
+      tarde: [],
+      noite: []
+    }
   };
 
   var modGrid = document.getElementById("modGrid");
@@ -532,6 +608,108 @@
     }
     fullSchedule.appendChild(dayBlock);
   });
+
+  var DESCRIPTIONS = [
+    { key: "beach", emoji: "💪", title: "GTS Beach Body", tagline: "Ginástica e musculação em uma só aula!",
+      text: "Inspirada nos treinos coletivos que são tendência no Rio de Janeiro, a Beach Body combina movimentos da ginástica com técnicas de musculação. Exercícios coordenados e dinâmicos que trabalham força, resistência, condicionamento e definição muscular. Uma aula completa, intensa e cheia de energia!" },
+    { key: "gap", emoji: "🍑", title: "GTS GAP", tagline: "Glúteos, Abdômen e Pernas!",
+      text: "Treino focado no fortalecimento e na tonificação de glúteos, abdômen e pernas. Combina exercícios localizados e movimentos funcionais para melhorar a resistência muscular, a estabilidade e a definição dessas regiões." },
+    { key: "force", emoji: "🔥", title: "GTS Force", tagline: "Força, potência e superação!",
+      text: "Aula voltada ao desenvolvimento da força e da resistência muscular, utilizando exercícios de treinamento resistido. Ideal para quem busca fortalecer o corpo, melhorar o condicionamento e superar seus limites." },
+    { key: "pilates", emoji: "🧘", title: "GTS Pilates", tagline: "Equilíbrio, força e consciência corporal!",
+      text: "Aula baseada nos princípios do Pilates, com exercícios que trabalham fortalecimento, postura, flexibilidade, equilíbrio e controle dos movimentos. Ideal para desenvolver a musculatura estabilizadora e melhorar a consciência corporal." },
+    { key: "yogaflow", emoji: "🌿", title: "GTS Yoga Flow", tagline: "Movimento, equilíbrio e conexão!",
+      text: "Uma prática de yoga com sequências fluidas que conectam movimentos e respiração. Desenvolve flexibilidade, força, equilíbrio e concentração, ajudando a aliviar o estresse e promover o bem-estar." },
+    { key: "mobilidade", emoji: "🤸", title: "GTS Mobilidade", tagline: "Mais liberdade para se movimentar!",
+      text: "Aula focada em melhorar a mobilidade das articulações, a amplitude dos movimentos e o controle corporal. Ajuda a reduzir a rigidez muscular e a preparar o corpo para executar movimentos com mais qualidade." },
+    { key: "alongamento", emoji: "🙆", title: "GTS Alongamento", tagline: "Flexibilidade e bem-estar!",
+      text: "Exercícios de alongamento que ajudam a melhorar a flexibilidade, aliviar tensões musculares e aumentar a amplitude dos movimentos. Uma aula para cuidar do corpo e melhorar a sensação de bem-estar." },
+    { key: "dance", emoji: "💃", title: "GTS Dance", tagline: "Dance, divirta-se e queime calorias!",
+      text: "Uma aula animada com coreografias e diferentes ritmos musicais. Trabalha coordenação motora, resistência cardiovascular e condicionamento físico, combinando exercício, música e diversão." },
+    { key: "jump", emoji: "⚡", title: "GTS Jump", tagline: "Energia e condicionamento lá em cima!",
+      text: "Aula aeróbica realizada em minitrampolins, com movimentos ritmados e coreografados. Trabalha resistência cardiovascular, coordenação, equilíbrio e musculatura das pernas. Divertida, dinâmica e cheia de energia!" },
+    { key: "flash", emoji: "🪩", title: "GTS Flashback", tagline: "Mexa o corpo ao som dos grandes sucessos!",
+      text: "Uma aula de dança com coreografias embaladas pelos hits que marcaram época. Combina atividade cardiovascular, coordenação motora e muita diversão em uma verdadeira viagem musical." },
+    { key: "step", emoji: "🪜", title: "GTS Step Power", tagline: "Ritmo, potência e resistência!",
+      text: "Aula dinâmica que utiliza plataformas de step para executar sequências de movimentos e exercícios ritmados. Trabalha principalmente pernas e glúteos, além de desenvolver coordenação, resistência muscular e condicionamento cardiovascular." }
+  ];
+
+  var DAY_SHORT = { segunda: "Seg", terca: "Ter", quarta: "Qua", quinta: "Qui", sexta: "Sex", sabado: "Sáb" };
+
+  function timesByHour(modKey) {
+    var groups = {};
+    DAYS.forEach(function (day) {
+      PERIODS.forEach(function (period) {
+        (SCHEDULE[day.key][period.key] || []).forEach(function (e) {
+          if (e[2] !== modKey) return;
+          var slot = e[0] + "–" + e[1];
+          (groups[slot] = groups[slot] || []).push(DAY_SHORT[day.key]);
+        });
+      });
+    });
+    return Object.keys(groups).sort().map(function (slot) { return { slot: slot, days: groups[slot] }; });
+  }
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text) node.textContent = text;
+    return node;
+  }
+
+  var aboutList = document.getElementById("aboutList");
+  DESCRIPTIONS.forEach(function (d) {
+    var card = el("article", "about-card");
+    var head = el("div", "about-head");
+    var emoji = el("span", "about-emoji", d.emoji);
+    emoji.setAttribute("aria-hidden", "true");
+    head.appendChild(emoji);
+    head.appendChild(el("h2", null, d.title));
+    card.appendChild(head);
+    card.appendChild(el("p", "about-tagline", d.tagline));
+    card.appendChild(el("p", "about-text", d.text));
+    var times = timesByHour(d.key);
+    if (times.length) {
+      var row = el("div", "about-times");
+      times.forEach(function (t) {
+        var pill = el("span", "time-pill tabular");
+        pill.appendChild(el("b", null, t.days.join(", ")));
+        pill.appendChild(document.createTextNode(" · " + t.slot));
+        row.appendChild(pill);
+      });
+      card.appendChild(row);
+    }
+    aboutList.appendChild(card);
+  });
+
+  var tabs = [
+    { tab: document.getElementById("tabGrade"), panel: document.getElementById("panelGrade"), hash: "" },
+    { tab: document.getElementById("tabAulas"), panel: document.getElementById("panelAulas"), hash: "#entenda-cada-aula" }
+  ];
+
+  function selectTab(index, focus) {
+    tabs.forEach(function (t, i) {
+      var active = i === index;
+      t.tab.setAttribute("aria-selected", String(active));
+      t.tab.tabIndex = active ? 0 : -1;
+      t.panel.hidden = !active;
+    });
+    if (focus) tabs[index].tab.focus();
+    var hash = tabs[index].hash;
+    if (location.hash !== hash) history.replaceState(null, "", hash || location.pathname + location.search);
+  }
+
+  tabs.forEach(function (t, i) {
+    t.tab.addEventListener("click", function () { selectTab(i, false); });
+    t.tab.addEventListener("keydown", function (ev) {
+      if (ev.key === "ArrowRight" || ev.key === "ArrowLeft") {
+        ev.preventDefault();
+        selectTab((i + 1) % tabs.length, true);
+      }
+    });
+  });
+
+  if (location.hash === "#entenda-cada-aula") selectTab(1, false);
 
   fullToggle.addEventListener("click", function () {
     var open = fullSchedule.classList.toggle("is-open");
